@@ -2,12 +2,11 @@
 
 namespace ContextTest\Tests\Core;
 
-use App\Testing\Bridge\PHPUnit\ContextAwareTestTrait;
+use ContextTest\Bridge\PHPUnit\ContextAwareTestTrait;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Tests the core of context-test-debug: trait, steps, dump on failure.
- * Uses App\Testing while the package code lives in the host project.
  */
 class ContextAwareTestTraitTest extends TestCase
 {
@@ -27,6 +26,19 @@ class ContextAwareTestTraitTest extends TestCase
     public function test_passes_without_dump(): void
     {
         $this->logStep('Passing test');
+        $this->assertTrue(true);
+    }
+
+    /**
+     * Déclenche une notice PHP pour vérifier qu'elle apparaît dans le rapport (PhpErrorLogBuffer).
+     * Lancer avec TEST_FORCE_LOGS=1 pour générer le dump même si le test passe.
+     */
+    public function test_php_notice_appears_in_report(): void
+    {
+        $this->logStep('Before notice');
+        // Undefined variable → E_NOTICE capturée par set_error_handler → PhpErrorLogBuffer
+        $dummy = $undefinedVariable;
+        $this->logStep('After notice');
         $this->assertTrue(true);
     }
 }

@@ -6,6 +6,10 @@ When a test fails—or when you ask for it—this library captures a snapshot of
 
 **Requirements:** PHP 8.0+, PHPUnit 9.5+ / 10+, and optionally Symfony 6+ / 7+ for the Symfony bridge.
 
+**Package layout (namespace `ContextTest\`):**
+- `src/Bridge/` — EnableContextDump, PHPUnit/ContextAwareTestTrait
+- `src/Context/` — PhpErrorLogBuffer, ContextSnapshotter, Collector/, Decision/, Report/, State/
+
 ---
 
 ## Installation
@@ -101,6 +105,30 @@ Reports are written under a configurable path (e.g. `var/log/` with the Symfony 
    ```bash
    TEST_FORCE_LOGS=1 vendor/bin/phpunit
    ```
+
+---
+
+## Running the package tests with debug
+
+When you run the **package’s own** PHPUnit tests (e.g. from `vendor/3mda/context-test-debug/`), the trait is already used and the bootstrap:
+
+- Sets **`CONTEXT_TEST_OUTPUT_DIR`** to the package’s `var/log/`, so context reports are written under the package (e.g. `vendor/3mda/context-test-debug/var/log/phpunit.datacontext-&lt;pid&gt;.txt`).
+- Registers an **error handler** so PHP errors (warnings, notices, etc.) are captured in the report (PhpErrorLogBuffer).
+
+So:
+
+- **On failure** → a report is generated automatically in the package’s `var/log/`.
+- **On success** → no report unless you force it:
+  - `TEST_FORCE_LOGS=1 vendor/bin/phpunit` (from the package directory), or
+  - `#[EnableContextDump]` on the test method.
+
+Example from the host project root:
+
+```bash
+TEST_FORCE_LOGS=1 vendor/bin/phpunit vendor/3mda/context-test-debug/tests
+```
+
+Reports will appear under `vendor/3mda/context-test-debug/var/log/` (this directory is in `.gitignore`).
 
 ---
 
