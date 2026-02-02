@@ -126,6 +126,22 @@ class TestBootstrapper
         return $this->getLogDir() . '/phpunit.datacontext.junit';
     }
 
+    /**
+     * Désactive la collecte du profiler en environnement test.
+     *
+     * Bug Symfony/Doctrine : DoctrineDataCollector accède à $this->data['queries'] sans vérifier
+     * l'existence de la clé. Après reset() (ligne 102) ou lorsque collect() n'a jamais été appelé,
+     * $this->data est vide → "Undefined array key 'queries'" (lignes 137, 146, 155).
+     *
+     * Périmètre : env test, lorsque le profiler ou un collecteur (ex. QueryCollector) accède au
+     * DoctrineDataCollector après une requête ou sans requête HTTP (KernelTestCase).
+     *
+     * Solution : forcer framework.profiler.collect à false via APP_PROFILER_COLLECT_IN_TEST=0,
+     * ce qui désactive le profiler et évite ces accès.
+     *
+     * @see https://github.com/symfony/doctrine-bridge/blob/6.4/DataCollector/DoctrineDataCollector.php
+     * @see README.md section "Symfony Profiler in test"
+     */
     private function configureProfilerCollectFalse(): void
     {
         $_SERVER['APP_PROFILER_COLLECT_IN_TEST'] = '0';

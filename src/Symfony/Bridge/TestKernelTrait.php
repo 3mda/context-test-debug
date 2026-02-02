@@ -2,6 +2,7 @@
 
 namespace ContextTest\Symfony\Bridge;
 
+use ContextTest\Bridge\PHPUnit\DefaultTestPaths;
 use ContextTest\Symfony\Bridge\Log\TestInMemoryLogHandler;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -9,6 +10,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 /**
  * Trait à utiliser dans le Kernel de test du projet hôte.
  * Isole cache/logs par processus (Paratest) et enregistre le handler Monolog en mémoire.
+ * Délègue à DefaultTestPaths pour la résolution des chemins (source unique).
  *
  * Exemple (dans le projet hôte) :
  *   class TestKernel extends App\Kernel { use TestKernelTrait; }
@@ -17,47 +19,40 @@ trait TestKernelTrait
 {
     public function getCacheDir(): string
     {
-        if ($token = getenv('TEST_TOKEN')) {
-            return $this->getProjectDir() . '/var/cache/test_' . $token;
+        if (getenv('TEST_TOKEN')) {
+            return DefaultTestPaths::getCacheDir($this->getProjectDir());
         }
         return parent::getCacheDir();
     }
 
     public function getLogDir(): string
     {
-        if ($token = getenv('TEST_TOKEN')) {
-            $dir = $this->getProjectDir() . '/var/log/test_' . $token;
-            if (!is_dir($dir)) {
-                @mkdir($dir, 0777, true);
-            }
-            return $dir;
-        }
-        return parent::getLogDir();
+        return DefaultTestPaths::getLogDir($this->getProjectDir());
     }
 
     public function getPhpErrorLogPath(): string
     {
-        return $this->getLogDir() . '/' . (getenv('TEST_PHP_ERROR_LOG_FILENAME') ?: 'phpunit_errors.log');
+        return DefaultTestPaths::getPhpErrorLogPath($this->getProjectDir());
     }
 
     public function getContextJunitPath(): string
     {
-        return $this->getLogDir() . '/' . (getenv('TEST_CONTEXT_JUNIT_FILENAME') ?: 'phpunit.datacontext.junit');
+        return DefaultTestPaths::getContextJunitPath($this->getProjectDir());
     }
 
     public function getResultsJunitPath(): string
     {
-        return $this->getLogDir() . '/phpunit.results.junit';
+        return DefaultTestPaths::getResultsJunitPath($this->getProjectDir());
     }
 
     public function getSymfonyLogFilename(): string
     {
-        return getenv('TEST_LOG_FILENAME') ?: 'test.log';
+        return DefaultTestPaths::getSymfonyLogFilename();
     }
 
     public function getSymfonyLogPath(): string
     {
-        return $this->getLogDir() . '/' . $this->getSymfonyLogFilename();
+        return DefaultTestPaths::getSymfonyLogPath($this->getProjectDir());
     }
 
     protected function build(ContainerBuilder $container): void

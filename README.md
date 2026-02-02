@@ -180,7 +180,7 @@ You get collectors for browser (URL, status, response), session, cookies, databa
 
 The bootstrap sets **`APP_PROFILER_COLLECT_IN_TEST=0`** so that `framework.profiler.collect` is false in test.
 
-**Known Symfony/Doctrine bug:** with the profiler collecting in test, `DoctrineDataCollector` may access the missing `"queries"` key → `Undefined array key "queries"` (DoctrineDataCollector.php) → PhpErrorLog filled on every test. Hence the variable forced to false. Override or adjust config if you need to.
+**Known Symfony/Doctrine bug:** `DoctrineDataCollector` accesses `$this->data['queries']` without checking if the key exists. After `reset()` or when `collect()` was never called, `$this->data` is empty → `Undefined array key "queries"` (DoctrineDataCollector.php, lines 137, 146, 155). Solution: disable profiler collection in test. See [DoctrineDataCollector source](https://github.com/symfony/doctrine-bridge/blob/6.4/DataCollector/DoctrineDataCollector.php).
 
 ---
 

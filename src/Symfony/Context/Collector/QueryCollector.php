@@ -34,12 +34,17 @@ class QueryCollector extends AbstractSymfonyCollector
                 $queries = [];
             }
             $data = [];
-            foreach ($queries as $query) {
-                $data[] = [
-                    'sql' => $query['sql'] ?? '',
-                    'params' => $query['params'] ?? [],
-                    'time_ms' => $query['executionMS'] ?? 0,
-                ];
+            foreach ($queries as $connectionQueries) {
+                if (!is_array($connectionQueries)) {
+                    continue;
+                }
+                foreach ($connectionQueries as $query) {
+                    $data[] = [
+                        'sql' => $query['sql'] ?? '',
+                        'params' => $query['params'] ?? [],
+                        'time_ms' => $query['executionMS'] ?? 0,
+                    ];
+                }
             }
             return ['count' => count($data), 'log' => $data];
         } catch (\Throwable $e) {
