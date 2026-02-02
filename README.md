@@ -7,8 +7,8 @@ When a test fails—or when you ask for it—this library captures a snapshot of
 **Requirements:** PHP 8.0+, PHPUnit 9.5+ / 10+, and optionally Symfony 6+ / 7+ for the Symfony bridge.
 
 **Package layout (namespace `ContextTest\`):**
-- `src/Bridge/` — EnableContextDump, PHPUnit/ContextAwareTestTrait
-- `src/Context/` — PhpErrorLogBuffer, ContextSnapshotter, Collector/, Decision/, Report/, State/
+- **Core** — `src/Bridge/` (EnableContextDump, PHPUnit/ContextAwareTestTrait), `src/Context/` (PhpErrorLogBuffer, ContextSnapshotter, Collector/, Decision/, Report/, State/)
+- **Symfony bridge** — `src/Symfony/Bridge/` (Client/, Log/, MonologTestLogPass, TestKernelTrait, PHPUnit/ContextAwareTestTrait, TestBootstrapper), `src/Symfony/Context/` (Collector/, ContextSnapshotter)
 
 ---
 
