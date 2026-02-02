@@ -1,0 +1,23 @@
+{
+    "name": "3mda/context-test-debug",
+    "description": "Capture test context (DB, logs, session, cookies) to debug PHPUnit tests.",
+    "type": "library",
+    "license": "Apache-2.0",
+    "require": {
+        "php": ">=8.0",
+        "phpunit/phpunit": "^9.5 || ^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "ContextTest\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ContextTest\\Tests\\": "tests/"
+        }
+    },
+    "suggest": {
+        "symfony/framework-bundle": "For the Symfony bridge (TestKernel, collectors, traceable client)"
+    }
+}

@@ -51,7 +51,7 @@ class MyTest extends TestCase
 }
 ```
 
-The trait hooks into PHPUnit’s lifecycle: it records key steps (requests, form submissions, etc.) and, on failure or when you force it, captures whatever context your collectors provide and writes a report. If you use the **Symfony bridge**, you also get `createTestClient()` to wrap your HTTP client and capture browser, session, DB, and logs—see [With Symfony](#with-symfony) below.
+The trait hooks into PHPUnit's lifecycle: it records key steps (requests, form submissions, etc.) and, on failure or when you force it, captures whatever context your collectors provide and writes a report. If you use the **Symfony bridge**, you also get `createTestClient()` to wrap your HTTP client and capture browser, session, DB, and logs—see [With Symfony](#with-symfony) below.
 
 ### 3. Run tests
 
@@ -64,7 +64,7 @@ The trait hooks into PHPUnit’s lifecycle: it records key steps (requests, form
 
 By default, context reports are only written on **failure or error**, so output and disk stay clean.
 
-**Custom indicator:** When a context report is generated, PHPUnit’s output includes a **`D`** (Dump): a full context report was written to help you debug.
+**Custom indicator:** When a context report is generated, PHPUnit's output includes a **`D`** (Dump): a full context report was written to help you debug.
 
 **Order of output:** The dump runs during the test (in `tearDown` or when an exception is caught), while PHPUnit prints the test result (`.`, `F`, `E`) at the very end. So **`D` always appears before** the final result.
 
@@ -148,15 +148,51 @@ class MyWebTest extends WebTestCase
 
 You get collectors for browser (URL, status, response), session, cookies, database, logs, and mailer. Other frameworks (e.g. Laravel) can be supported later via their own bridges.
 
+### Symfony Profiler in test
+
+The bootstrap sets **`APP_PROFILER_COLLECT_IN_TEST=0`** so that `framework.profiler.collect` is false in test.
+
+**Known Symfony/Doctrine bug:** with the profiler collecting in test, `DoctrineDataCollector` may access the missing `"queries"` key → `Undefined array key "queries"` (DoctrineDataCollector.php) → PhpErrorLog filled on every test. Hence the variable forced to false. Override or adjust config if you need to.
+
 ---
 
 ## Architecture (overview)
 
 - **Core:** framework-agnostic. Collectors implement a simple contract: `collect(array $context): array`. A snapshotter aggregates them and a report generator writes the result.
 - **Bridge PHPUnit:** `ContextAwareTestTrait`, `TestBootstrapper`, `EnableContextDump` attribute. Wires context capture into the test lifecycle.
-- **Bridge Symfony:** optional. Provides `TestKernel`, a traceable client wrapper, in-memory log handler, and collectors that read from Symfony’s request/response/container (Browser, Session, Database, Log, Mailer, Query).
+- **Bridge Symfony:** optional. Provides `TestKernel`, a traceable client wrapper, in-memory log handler, and collectors that read from Symfony's request/response/container (Browser, Session, Database, Log, Mailer, Query).
 
 You can use the core with only the PHPUnit bridge and your own collectors; the Symfony bridge is optional for deeper integration.
+
+---
+
+## Development and sharing
+
+The package lives in its own Git repo and is designed to be reusable across projects.
+
+You can clone or develop this package pull requests are welcome.
+
+**Using the package from the repo**
+
+In your project's `composer.json`, add the VCS repository and require the package:
+
+```json
+{
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/3mda/context-test-debug"
+        }
+    ],
+    "require-dev": {
+        "3mda/context-test-debug": "^1.0"
+    }
+}
+```
+
+Then:
+
+- **`composer install`** / **`composer update`** installs or updates the package into `vendor/3mda/context-test-debug`.
 
 ---
 
