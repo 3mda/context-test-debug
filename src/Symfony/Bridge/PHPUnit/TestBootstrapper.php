@@ -10,39 +10,30 @@ use Symfony\Component\Dotenv\Dotenv;
 
 /**
  * Bootstrap Symfony pour les tests (env, profiler, PHP errors, logs, DB).
- * Le projet hôte doit définir KERNEL_CLASS (son TestKernel) avant d'appeler bootstrap().
- * Optionnel : une classe avec méthodes statiques getProjectDir(), getLogDir(), configure(), etc.
+ * Le projet hôte doit fournir sa classe TestKernel (qui use TestKernelTrait).
+ * Les chemins sont résolus via le TestKernel (getProjectDir, getLogDir, etc.).
  */
 class TestBootstrapper
 {
     private string $logSuffix;
-    private ?string $pathsClass;
+    private ?object $kernel = null;
 
     /**
-     * @param string|null $kernelClass Classe Kernel de test (ex. App\Testing\Bridge\Symfony\TestKernel). Si null, KERNEL_CLASS doit déjà être défini.
-     * @param string|null $pathsClass  Classe avec getProjectDir(), getLogDir(), configure(), etc. (ex. App\Testing\Utils\TestPaths). Si null, tente App\Testing\Utils\TestPaths puis getcwd().
+     * @param string|null $kernelClass Classe Kernel de test (ex. App\Testing\Bridge\Symfony\TestKernel). Requis pour résoudre les chemins.
      */
-    public static function bootstrap(?string $kernelClass = null, ?string $pathsClass = null): void
+    public static function bootstrap(?string $kernelClass = null): void
     {
-        (new self($pathsClass))->run($kernelClass);
+        (new self())->run($kernelClass);
     }
 
-    public function __construct(?string $pathsClass = null)
+    public function __construct()
     {
         $this->logSuffix = sprintf('%s-%s', getmypid(), uniqid());
-        $this->pathsClass = $pathsClass ?? (class_exists(\App\Testing\Utils\TestPaths::class) ? \App\Testing\Utils\TestPaths::class : null);
-        if ($this->pathsClass && method_exists($this->pathsClass, 'configure')) {
-            $this->pathsClass::configure(
-                sprintf('phpunit-phpErrorLog-%s.log', $this->logSuffix),
-                sprintf('phpunit-%s-%s.log', 'symfonyTestLog', $this->logSuffix),
-                sprintf('phpunit.datacontext-%s.txt', $this->logSuffix),
-                'symfonyTestLog'
-            );
-        }
     }
 
     private function run(?string $kernelClass): void
     {
+        $this->ensureKernel($kernelClass);
         $this->loadEnv();
 
         if (($_SERVER['APP_DEBUG'] ?? false)) {
@@ -63,18 +54,51 @@ class TestBootstrapper
         }
     }
 
+    private function ensureKernel(?string $kernelClass): void
+    {
+        if ($this->kernel !== null) {
+            return;
+        }
+        $kernelClass = $kernelClass ?? $_SERVER['KERNEL_CLASS'] ?? null;
+        if (!$kernelClass || !class_exists($kernelClass)) {
+            return;
+        }
+        $this->setTestPathEnvVarsBeforeKernel();
+        $this->kernel = new $kernelClass($_SERVER['APP_ENV'] ?? 'test', (bool) ($_SERVER['APP_DEBUG'] ?? false));
+        $this->setContextTestOutputPath();
+    }
+
+    private function setTestPathEnvVarsBeforeKernel(): void
+    {
+        $_SERVER['TEST_PHP_ERROR_LOG_FILENAME'] = sprintf('phpunit-phpErrorLog-%s.log', $this->logSuffix);
+        putenv('TEST_PHP_ERROR_LOG_FILENAME=' . $_SERVER['TEST_PHP_ERROR_LOG_FILENAME']);
+        $_SERVER['TEST_LOG_FILENAME'] = sprintf('phpunit-symfonyTestLog-%s.log', $this->logSuffix);
+        putenv('TEST_LOG_FILENAME=' . $_SERVER['TEST_LOG_FILENAME']);
+        $_SERVER['TEST_CONTEXT_JUNIT_FILENAME'] = sprintf('phpunit.datacontext-%s.txt', $this->logSuffix);
+        putenv('TEST_CONTEXT_JUNIT_FILENAME=' . $_SERVER['TEST_CONTEXT_JUNIT_FILENAME']);
+    }
+
+    private function setContextTestOutputPath(): void
+    {
+        if (!$this->kernel || !method_exists($this->kernel, 'getContextJunitPath')) {
+            return;
+        }
+        $_SERVER['CONTEXT_TEST_OUTPUT_PATH'] = $this->kernel->getContextJunitPath();
+        putenv('CONTEXT_TEST_OUTPUT_PATH=' . $_SERVER['CONTEXT_TEST_OUTPUT_PATH']);
+    }
+
     private function getProjectDir(): string
     {
-        if ($this->pathsClass && method_exists($this->pathsClass, 'getProjectDir')) {
-            return $this->pathsClass::getProjectDir();
+        if ($this->kernel) {
+            return $this->kernel->getProjectDir();
         }
         return getcwd() ?: dirname(__DIR__, 5);
     }
 
     private function getLogDir(): string
     {
-        if ($this->pathsClass && method_exists($this->pathsClass, 'getLogDir')) {
-            return $this->pathsClass::getLogDir();
+        if ($this->kernel && method_exists($this->kernel, 'getLogDir')) {
+            return $this->kernel->getLogDir();
         }
         $dir = $this->getProjectDir() . '/var/log';
         if ($token = getenv('TEST_TOKEN')) {
@@ -88,16 +112,16 @@ class TestBootstrapper
 
     private function getPhpErrorLogPath(): string
     {
-        if ($this->pathsClass && method_exists($this->pathsClass, 'getPhpErrorLogPath')) {
-            return $this->pathsClass::getPhpErrorLogPath();
+        if ($this->kernel && method_exists($this->kernel, 'getPhpErrorLogPath')) {
+            return $this->kernel->getPhpErrorLogPath();
         }
         return $this->getLogDir() . '/phpunit_errors.log';
     }
 
     private function getContextJunitPath(): string
     {
-        if ($this->pathsClass && method_exists($this->pathsClass, 'getContextJunitPath')) {
-            return $this->pathsClass::getContextJunitPath();
+        if ($this->kernel && method_exists($this->kernel, 'getContextJunitPath')) {
+            return $this->kernel->getContextJunitPath();
         }
         return $this->getLogDir() . '/phpunit.datacontext.junit';
     }
@@ -153,8 +177,8 @@ class TestBootstrapper
 
         $patterns = ['/phpunit-symfony-test-log-*.log', '/phpunit-phpErrorLog-*.log', '/phpunit-symfonyTestLog-*.log', '/phpunit.datacontext-*.yaml', '/phpunit.datacontext-*.txt'];
         $currentFiles = [$phpErrorPath, $contextPath];
-        if ($this->pathsClass && method_exists($this->pathsClass, 'getSymfonyLogPath')) {
-            $currentFiles[] = $this->pathsClass::getSymfonyLogPath();
+        if ($this->kernel && method_exists($this->kernel, 'getSymfonyLogPath')) {
+            $currentFiles[] = $this->kernel->getSymfonyLogPath();
         }
         foreach ($patterns as $pattern) {
             foreach (glob($logDir . $pattern) ?: [] as $file) {
@@ -169,10 +193,9 @@ class TestBootstrapper
 
     private function configureLogging(): void
     {
-        $filename = 'test.log';
-        if ($this->pathsClass && method_exists($this->pathsClass, 'getSymfonyLogFilename')) {
-            $filename = $this->pathsClass::getSymfonyLogFilename();
-        }
+        $filename = $this->kernel && method_exists($this->kernel, 'getSymfonyLogFilename')
+            ? $this->kernel->getSymfonyLogFilename()
+            : 'test.log';
         $_SERVER['TEST_LOG_FILENAME'] = $filename;
         $_ENV['TEST_LOG_FILENAME'] = $filename;
         putenv('TEST_LOG_FILENAME=' . $filename);

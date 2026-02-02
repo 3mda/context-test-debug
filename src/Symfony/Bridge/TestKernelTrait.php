@@ -26,9 +26,38 @@ trait TestKernelTrait
     public function getLogDir(): string
     {
         if ($token = getenv('TEST_TOKEN')) {
-            return $this->getProjectDir() . '/var/log/test_' . $token;
+            $dir = $this->getProjectDir() . '/var/log/test_' . $token;
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0777, true);
+            }
+            return $dir;
         }
         return parent::getLogDir();
+    }
+
+    public function getPhpErrorLogPath(): string
+    {
+        return $this->getLogDir() . '/' . (getenv('TEST_PHP_ERROR_LOG_FILENAME') ?: 'phpunit_errors.log');
+    }
+
+    public function getContextJunitPath(): string
+    {
+        return $this->getLogDir() . '/' . (getenv('TEST_CONTEXT_JUNIT_FILENAME') ?: 'phpunit.datacontext.junit');
+    }
+
+    public function getResultsJunitPath(): string
+    {
+        return $this->getLogDir() . '/phpunit.results.junit';
+    }
+
+    public function getSymfonyLogFilename(): string
+    {
+        return getenv('TEST_LOG_FILENAME') ?: 'test.log';
+    }
+
+    public function getSymfonyLogPath(): string
+    {
+        return $this->getLogDir() . '/' . $this->getSymfonyLogFilename();
     }
 
     protected function build(ContainerBuilder $container): void

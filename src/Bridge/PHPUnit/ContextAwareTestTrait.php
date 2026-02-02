@@ -172,13 +172,16 @@ trait ContextAwareTestTrait
     {
         $this->addContextStep(true, 'Final State (Dump)');
 
-        // Chemin : package (constante/env) > projet hôte (TestPaths) > défaut
+        // Chemin : CONTEXT_TEST_OUTPUT_PATH (env, défini par TestBootstrapper via TestKernel) > CONTEXT_TEST_OUTPUT_DIR > défaut
         $filename = 'var/log/phpunit.datacontext.txt';
-        $dir = defined('CONTEXT_TEST_OUTPUT_DIR') ? CONTEXT_TEST_OUTPUT_DIR : (getenv('CONTEXT_TEST_OUTPUT_DIR') ?: ($_ENV['CONTEXT_TEST_OUTPUT_DIR'] ?? $_SERVER['CONTEXT_TEST_OUTPUT_DIR'] ?? ''));
-        if ($dir !== '') {
-            $filename = rtrim($dir, \DIRECTORY_SEPARATOR) . \DIRECTORY_SEPARATOR . sprintf('phpunit.datacontext-%s.txt', getmypid() ?: uniqid());
-        } elseif (class_exists(\App\Testing\Utils\TestPaths::class)) {
-            $filename = \App\Testing\Utils\TestPaths::getContextJunitPath();
+        $path = getenv('CONTEXT_TEST_OUTPUT_PATH') ?: ($_ENV['CONTEXT_TEST_OUTPUT_PATH'] ?? $_SERVER['CONTEXT_TEST_OUTPUT_PATH'] ?? '');
+        if ($path !== '') {
+            $filename = $path;
+        } else {
+            $dir = defined('CONTEXT_TEST_OUTPUT_DIR') ? CONTEXT_TEST_OUTPUT_DIR : (getenv('CONTEXT_TEST_OUTPUT_DIR') ?: ($_ENV['CONTEXT_TEST_OUTPUT_DIR'] ?? $_SERVER['CONTEXT_TEST_OUTPUT_DIR'] ?? ''));
+            if ($dir !== '') {
+                $filename = rtrim($dir, \DIRECTORY_SEPARATOR) . \DIRECTORY_SEPARATOR . sprintf('phpunit.datacontext-%s.txt', getmypid() ?: uniqid());
+            }
         }
 
         $testName = method_exists($this, 'name') ? $this->name() : $this->getName(false);
