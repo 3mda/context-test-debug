@@ -77,7 +77,7 @@ By default, context reports are only written on **failure or error**, so output 
 | Output | Meaning |
 |--------|--------|
 | `.` | Success (no dump, unless forced → see below) |
-| `D.` | Success + dump (e.g. forced via `#[EnableContextDump]` or `TEST_FORCE_LOGS=1`) |
+| `D.` | Success + dump (e.g. forced via `#[EnableContextDump]` or `DEBUG=1`) |
 | `DF` | Failure + dump generated for debugging |
 | `DE` | Error + dump generated for debugging |
 | `S` | Skipped (no dump) |
@@ -103,7 +103,7 @@ Reports are written under a configurable path (e.g. `var/log/` with the Symfony 
    ```
 3. **Environment variable** → all tests produce a report:
    ```bash
-   TEST_FORCE_LOGS=1 vendor/bin/phpunit
+   DEBUG=1 vendor/bin/phpunit
    ```
 
 ---
@@ -119,13 +119,13 @@ So:
 
 - **On failure** → a report is generated automatically in the package’s `var/log/`.
 - **On success** → no report unless you force it:
-  - `TEST_FORCE_LOGS=1 vendor/bin/phpunit` (from the package directory), or
+  - `DEBUG=1 vendor/bin/phpunit` (from the package directory), or
   - `#[EnableContextDump]` on the test method.
 
 Example from the host project root:
 
 ```bash
-TEST_FORCE_LOGS=1 vendor/bin/phpunit vendor/3mda/context-test-debug/tests
+DEBUG=1 vendor/bin/phpunit vendor/3mda/context-test-debug/tests
 ```
 
 Reports will appear under `vendor/3mda/context-test-debug/var/log/` (this directory is in `.gitignore`).
@@ -175,6 +175,17 @@ class MyWebTest extends WebTestCase
 ```
 
 You get collectors for browser (URL, status, response), session, cookies, database, logs, and mailer. Other frameworks (e.g. Laravel) can be supported later via their own bridges.
+
+**If your test overrides `tearDown()`**, call `$this->runContextAwareTearDown()` at the start of your tearDown so the dump logic still runs on failure:
+
+```php
+protected function tearDown(): void
+{
+    $this->runContextAwareTearDown();
+    // your cleanup...
+    parent::tearDown();
+}
+```
 
 ### Symfony Profiler in test
 

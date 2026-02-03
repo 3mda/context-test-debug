@@ -31,7 +31,7 @@ class ContextAwareTestTraitTest extends TestCase
 
     /**
      * Déclenche une notice PHP pour vérifier qu'elle apparaît dans le rapport (PhpErrorLogBuffer).
-     * Lancer avec TEST_FORCE_LOGS=1 pour générer le dump même si le test passe.
+     * Lancer avec DEBUG=1 pour générer le dump même si le test passe.
      */
     public function test_php_notice_appears_in_report(): void
     {

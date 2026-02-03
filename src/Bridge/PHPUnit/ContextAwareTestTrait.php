@@ -59,6 +59,16 @@ trait ContextAwareTestTrait
 
     protected function tearDown(): void
     {
+        $this->runContextAwareTearDown();
+        parent::tearDown();
+    }
+
+    /**
+     * Logique de dump de contexte (enregistrement des échecs, génération du rapport).
+     * À appeler depuis tearDown() si la classe surcharge tearDown.
+     */
+    protected function runContextAwareTearDown(): void
+    {
         if ($this->hasFailed()) {
             $testName = method_exists($this, 'name') ? $this->name() : $this->getName(false);
             $GLOBALS['__PHPUNIT_FAILED_TESTS'][] = static::class . '::' . $testName;
@@ -78,8 +88,6 @@ trait ContextAwareTestTrait
         if ($this->shouldDumpContext()) {
             $this->dumpContext();
         }
-
-        parent::tearDown();
     }
 
     /**
@@ -203,9 +211,15 @@ trait ContextAwareTestTrait
 
     protected function hasFailed(): bool
     {
+        // PHPUnit 10+: status() retourne TestStatus avec isFailure()/isError()
+        if (method_exists($this, 'status')) {
+            $status = $this->status();
+            return $status->isFailure() || $status->isError();
+        }
+        // PHPUnit 9: getStatus() retourne une constante BaseTestRunner
         if (method_exists($this, 'getStatus')) {
             $status = $this->getStatus();
-            return $status == BaseTestRunner::STATUS_FAILURE || $status == BaseTestRunner::STATUS_ERROR;
+            return $status === BaseTestRunner::STATUS_FAILURE || $status === BaseTestRunner::STATUS_ERROR;
         }
 
         return false;
