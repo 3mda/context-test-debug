@@ -69,7 +69,7 @@ trait ContextAwareTestTrait
                 if (!empty($GLOBALS['__PHPUNIT_FAILED_TESTS'])) {
                     echo "\n\n\033[33m! [DEBUG HINT] Des tests ont échoué. Pour relancer uniquement ces tests avec le dump de contexte actif :\033[0m\n";
                     $filter = implode('|', array_map(fn($t) => str_replace('\\', '\\\\', $t), $GLOBALS['__PHPUNIT_FAILED_TESTS']));
-                    echo sprintf("\n\033[32mTEST_FORCE_LOGS=1 vendor/bin/phpunit --filter \"%s\"\033[0m\n\n", $filter);
+                    echo sprintf("\n\033[32mDEBUG=1 vendor/bin/phpunit --filter \"%s\"\033[0m\n\n", $filter);
                 }
             });
             $GLOBALS['__PHPUNIT_SHUTDOWN_REGISTERED'] = true;
@@ -165,7 +165,7 @@ trait ContextAwareTestTrait
         } catch (\Throwable $e) {
         }
 
-        return $this->getDumpDecisionMaker()->decide($reflection);
+        return $this->getDumpDecisionMaker()->decide($reflection, $this->hasFailed());
     }
 
     protected function dumpContext(): void

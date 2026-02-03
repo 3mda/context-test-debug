@@ -12,9 +12,21 @@ class DumpDecisionMaker
     ) {
     }
 
-    public function decide(?ReflectionMethod $testMethod = null): bool
+    /**
+     * Détermine si un dump de contexte doit être généré.
+     *
+     * Conditions (dans l'ordre) :
+     * 1. Le test a échoué (failure ou error)
+     * 2. DEBUG est défini
+     * 3. La méthode de test possède l'attribut #[EnableContextDump]
+     */
+    public function decide(?ReflectionMethod $testMethod = null, bool $hasFailed = false): bool
     {
-        if (!empty($this->env['TEST_FORCE_LOGS'])) {
+        if ($hasFailed) {
+            return true;
+        }
+
+        if (!empty($this->env['DEBUG'])) {
             return true;
         }
 
