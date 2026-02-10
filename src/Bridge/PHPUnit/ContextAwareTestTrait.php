@@ -20,6 +20,9 @@ trait ContextAwareTestTrait
     private ?DumpDecisionMaker $dumpDecisionMaker = null;
     private ?ReportGenerator $reportGenerator = null;
 
+    /** Un seul dump (et un seul "D" CLI) par test, quel que soit le canal (DEBUG=1, annotation, échec). */
+    private bool $contextDumpDone = false;
+
     /** @var ContextSnapshotter|null visible aux traits qui étendent (ex. Symfony) */
     protected ?ContextSnapshotter $contextSnapshotter = null;
 
@@ -178,6 +181,11 @@ trait ContextAwareTestTrait
 
     protected function dumpContext(): void
     {
+        if ($this->contextDumpDone) {
+            return;
+        }
+        $this->contextDumpDone = true;
+
         $this->addContextStep(true, 'Final State (Dump)');
 
         // Chemin : CONTEXT_TEST_OUTPUT_PATH (env, défini par TestBootstrapper via TestKernel) > CONTEXT_TEST_OUTPUT_DIR > défaut
