@@ -77,7 +77,7 @@ By default, context reports are only written on **failure or error**, so output 
 | Output | Meaning |
 |--------|--------|
 | `.` | Success (no dump, unless forced → see below) |
-| `D.` | Success + dump (e.g. forced via `#[EnableContextDump]` or `DEBUG=1`) |
+| `D.` | Success + dump (e.g. forced via `#[EnableContextDump]` or `DEBUG=1` / `DEBUG=true`) |
 | `DF` | Failure + dump generated for debugging |
 | `DE` | Error + dump generated for debugging |
 | `S` | Skipped (no dump) |
@@ -90,7 +90,7 @@ Reports are written under a configurable path (e.g. `var/log/` with the Symfony 
 
 ## When is a report generated?
 
-1. **Test failed or error** → report is generated.
+1. **Test failed or error** → report is generated (unless `DEBUG` is falsy; see below).
 2. **Attribute on the test method** → report is generated even when the test passes:
    ```php
    use ContextTest\Bridge\EnableContextDump;
@@ -101,10 +101,28 @@ Reports are written under a configurable path (e.g. `var/log/` with the Symfony 
        // This test will produce a report (D) even if it passes.
    }
    ```
-3. **Environment variable** → all tests produce a report:
+3. **Environment variable** → when `DEBUG` is **truthy**, all tests produce a report; when **falsy**, the module is disabled (no dump, including on failure—e.g. to debug the package itself):
    ```bash
+   # Enable (any case): 1, true, yes, on
    DEBUG=1 vendor/bin/phpunit
+   DEBUG=true vendor/bin/phpunit
+   # Disable: 0, false, no, off
+   DEBUG=0 vendor/bin/phpunit
+   DEBUG=false vendor/bin/phpunit
    ```
+   The variable name is case-insensitive (`DEBUG`, `debug`, `Debug` all work).
+
+### How `#[EnableContextDump]` interacts with `DEBUG`
+
+The decision order is: **(1) DEBUG falsy → (2) test failed → (3) DEBUG truthy → (4) attribute on method.**
+
+| Situation | Effect |
+|-----------|--------|
+| **DEBUG not set** | Dump on failure, or for methods with the attribute when the test passes. |
+| **DEBUG=1 / true / yes / on** | Dump for **all** tests (failure or pass). |
+| **DEBUG=0 / false / no / off** | **No dump.** Module disabled for the whole run (including on failure), e.g. to debug the package itself. |
+
+So when DEBUG is **falsy**, it takes precedence over everything: no dump, even on failure or on methods with the attribute.
 
 ---
 
@@ -119,7 +137,7 @@ So:
 
 - **On failure** → a report is generated automatically in the package’s `var/log/`.
 - **On success** → no report unless you force it:
-  - `DEBUG=1 vendor/bin/phpunit` (from the package directory), or
+  - `DEBUG=1` or `DEBUG=true` (or `debug=1`, etc.; variable is case-insensitive), or
   - `#[EnableContextDump]` on the test method.
 
 Example from the host project root:
